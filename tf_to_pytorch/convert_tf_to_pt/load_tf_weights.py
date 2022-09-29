@@ -21,6 +21,9 @@ def load_param(checkpoint_file, conversion_table, model_name):
                 tf_param = np.transpose(tf_param, (1, 0, 2, 3))
         elif tf_param_name.endswith('kernel'):  # for weight(kernel), we should do transpose
             tf_param = np.transpose(tf_param)
+        elif pyt_param.shape == tf_param.shape[-1:] and all(d == 1 for d in tf_param.shape[:-1]):
+            tf_param = np.squeeze(tf_param)
+            print("Squeezed", tf_param_name)
         assert pyt_param.size() == tf_param.shape, \
             'Dim Mismatch: %s vs %s ; %s' % (tuple(pyt_param.size()), tf_param.shape, tf_param_name)
         pyt_param.data = torch.from_numpy(tf_param)
@@ -125,7 +128,7 @@ def load_efficientnet(model, checkpoint_file, model_name):
     return conversion_table
 
 
-def load_and_save_temporary_tensorflow_model(model_name, model_ckpt, example_img= '../../example/img.jpg'):
+def load_and_save_temporary_tensorflow_model(model_name, model_ckpt, example_img= '../../example/img.jpg', enable_ema: bool = False):
     """ Loads and saves a TensorFlow model. """
     image_files = [example_img]
     eval_ckpt_driver = eval_ckpt_main.EvalCkptDriver(model_name)
@@ -134,7 +137,7 @@ def load_and_save_temporary_tensorflow_model(model_name, model_ckpt, example_img
         probs = eval_ckpt_driver.build_model(images, is_training=False)
         sess.run(tf.compat.v1.global_variables_initializer())
         print(model_ckpt)
-        eval_ckpt_driver.restore_model(sess, model_ckpt)
+        eval_ckpt_driver.restore_model(sess, model_ckpt, enable_ema=enable_ema)
         tf.compat.v1.train.Saver().save(sess, 'tmp/model.ckpt')
 
 
@@ -156,6 +159,7 @@ if __name__ == '__main__':
                         help='checkpoint file path')
     parser.add_argument('--output_file', type=str, default='pretrained_pytorch/efficientnet-b0.pth',
                         help='output PyTorch model file name')
+    parser.add_argument('--enable_ema', action='store_true', help="Use ema")
     args = parser.parse_args()
 
     # Build model
@@ -163,7 +167,7 @@ if __name__ == '__main__':
 
     # Load and save temporary TensorFlow file due to TF nuances
     print(args.tf_checkpoint)
-    load_and_save_temporary_tensorflow_model(args.model_name, args.tf_checkpoint)
+    load_and_save_temporary_tensorflow_model(args.model_name, args.tf_checkpoint, enable_ema=args.enable_ema)
 
     # Load weights
     load_efficientnet(model, 'tmp/model.ckpt', model_name=args.model_name)

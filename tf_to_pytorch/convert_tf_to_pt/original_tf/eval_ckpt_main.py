@@ -77,7 +77,7 @@ class EvalCkptDriver(object):
     _, _, self.image_size, _ = efficientnet_builder.efficientnet_params(
         model_name)
 
-  def restore_model(self, sess, ckpt_dir):
+  def restore_model(self, sess, ckpt_dir, enable_ema: bool):
     """Restore variables from checkpoint dir."""
     checkpoint = tf.train.latest_checkpoint(ckpt_dir)
     ema = tf.train.ExponentialMovingAverage(decay=0.9999)
@@ -86,7 +86,7 @@ class EvalCkptDriver(object):
       if 'moving_mean' in v.name or 'moving_variance' in v.name:
         ema_vars.append(v)
     ema_vars = list(set(ema_vars))
-    var_dict = ema.variables_to_restore(ema_vars)
+    var_dict = ema.variables_to_restore(ema_vars) if enable_ema else ema_vars
     saver = tf.compat.v1.train.Saver(var_dict, max_to_keep=1)
     saver.restore(sess, checkpoint)
 

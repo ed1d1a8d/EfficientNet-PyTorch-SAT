@@ -28,6 +28,9 @@ VALID_MODELS = (
     'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7',
     'efficientnet-b8',
 
+    # https://github.com/cihangxie/SmoothAdversarialTraining
+    'efficientnet-bL1',
+
     # Support the construction of 'efficientnet-l2' without pretrained weights
     'efficientnet-l2'
 )
